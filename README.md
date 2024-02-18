@@ -11,3 +11,11 @@ WebReader is a Python utility designed to streamline the process of fetching, pr
 - **HTML Content Processing**: Processes HTML content to make links absolute, and extracts relevant content based on configurations.
 - **Easy adding new configurations**: Add new configurations using the add_new_config method, provide url and css selectors to include and exclude
 
+## Installation
+
+clone the repo, navigate to the directory and run the following command:
+
+```bash
+pip install .
+```
+
