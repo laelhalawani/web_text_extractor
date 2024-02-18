@@ -6,8 +6,8 @@ setup(
     install_requires=[
         'beautifulsoup4>=4.12.2',
     ],
-    package_data={'selective_web_reader': ['url_config*.json']},
-    include_package_data=True,
+    package_data={'selective_web_reader': ['./selective_web_reader/url_config*.json']},
+    #include_package_data=True, #use only with manifest not with package_data here
     author_email="Łael Al-Halawani <laelhalawani@gmail.com>",
     description="SelectiveWebReader is a Python utility designed to streamline the process of fetching, processing, and extracting content from web pages based on specific URL patterns and CSS selectors.",
     classifiers=[
