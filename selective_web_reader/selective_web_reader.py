@@ -295,3 +295,5 @@ class SelectiveWebReader:
             file_path = Path(urlparse(self.url).path).name + ".html"
         with open(file_path, 'w') as f:
             f.write(self.html_string)
+        print(f"HTML content saved to {file_path}")
+        return file_path
