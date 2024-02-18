@@ -9,4 +9,5 @@ WebReader is a Python utility designed to streamline the process of fetching, pr
 - **Content Exclusion**: Define elements to be removed from the extraction.
 - **Image Download**: Utility function to download and save images from the web.
 - **HTML Content Processing**: Processes HTML content to make links absolute, and extracts relevant content based on configurations.
+- **Easy adding new configurations**: Add new configurations using the add_new_config method, provide url and css selectors to include and exclude
 

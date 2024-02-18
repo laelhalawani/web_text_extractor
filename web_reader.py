@@ -76,7 +76,7 @@ class WebReader:
             "remove_selectors" : remove_selectors
         }
     
-    def add_new_config(self, url_parent:str, include_selectors:list, remove_selectors:list, update_file:bool=True) -> None:
+    def add_new_config(self, url_parent:str, include_selectors:list=["h1", "p"], remove_selectors:list=["button", "form", "style", "script", "iframe"], update_file:bool=True) -> None:
         """
         Adds a URL configuration to the url_configs dictionary and optionally updates the URL configurations file.
 
