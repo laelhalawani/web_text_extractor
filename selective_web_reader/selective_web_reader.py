@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 
-DEFAULT_URL_CONFIG_FILE_PATH = "./url_configs.json"
+DEFAULT_URL_CONFIG_FILE_PATH = "./selective_web_reader/url_configs.json"
 """
 Configuration File Format for Content Extraction:
 
