@@ -1,3 +1,3 @@
-from .web_reader import WebReader
+from .selective_web_reader import SelectiveWebReader
 
-__all__ = ['WebReader']
+__all__ = ['SelectiveWebReader']

@@ -26,7 +26,7 @@ Configuration File Format for Content Extraction:
 This configuration allows detailed specification of content to include and exclude based on the structure of targeted web pages.
 """
 
-class WebReader:
+class SelectiveWebReader:
     """
     A class to load and process web content based on URL configurations.
 
