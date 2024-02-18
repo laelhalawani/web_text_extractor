@@ -94,6 +94,7 @@ class SelectiveWebReader:
             "remove_selectors" : remove_selectors
         }
     
+
     def add_new_config(self, url_parent:str, include_selectors:list=["h1", "p"], remove_selectors:list=["button", "form", "style", "script", "iframe"], update_file:bool=True) -> None:
         """
         Adds a URL configuration to the url_configs dictionary and optionally updates the URL configurations file.
@@ -105,7 +106,22 @@ class SelectiveWebReader:
             update_file (bool, optional): Whether to update the URL configurations file. Default is True.
         """
         config = self._create_config(url_parent, include_selectors, remove_selectors)
-        self._add_config(config)
+        self._add_new_config(config, update_entry=False)
+        if update_file:
+            self._update_url_configs_file()
+    
+    def modify_or_add_config(self, url_parent:str, include_selectors:list=["h1", "p"], remove_selectors:list=["button", "form", "style", "script", "iframe"], update_file:bool=True) -> None:
+        """
+        Adds a URL configuration to the url_configs dictionary and optionally updates the URL configurations file.
+
+        Args:
+            url_parent (str): The URL pattern to match.
+            include_selectors (list): List of CSS selectors to include in the extraction.
+            remove_selectors (list): List of CSS selectors to remove from the extraction.
+            update_file (bool, optional): Whether to update the URL configurations file. Default is True.
+        """
+        config = self._create_config(url_parent, include_selectors, remove_selectors)
+        self._add_new_config(config, update_entry=True)
         if update_file:
             self._update_url_configs_file()
 
@@ -130,6 +146,24 @@ class SelectiveWebReader:
                     "include_selectors" : url_config["include_selectors"],
                     "remove_selectors" : url_config["remove_selectors"]
                 }
+    
+    def _add_new_config(self, url_config:dict, update_entry:bool=False) -> None:
+        """
+        Adds a URL configuration to the url_configs dictionary.
+        
+        Args:
+            url_config (dict): A single URL configuration containing URL patterns, include, and remove selectors.
+        """
+        url_patterns = url_config["url_pattern"]
+        matched:bool = False
+        for url_pattern in url_patterns:
+            if url_pattern in self.url_configs.keys():
+                matched = True
+        if not matched or update_entry:   
+            self.url_configs[url_pattern] = {
+                "include_selectors" : url_config["include_selectors"],
+                "remove_selectors" : url_config["remove_selectors"]
+            }
     
     def _load_url_configs_file(self, url_configs_file:str):
         """
