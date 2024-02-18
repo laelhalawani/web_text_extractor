@@ -50,7 +50,11 @@ class WebReader:
         """
         self.url_configs_file = DEFAULT_URL_CONFIG_FILE_PATH if url_configs_file is None else url_configs_file
         self.url_configs = {}
-        self._load_url_configs_file(self.url_configs_file)
+        if Path(self.url_configs_file).exists() and Path(self.url_configs_file).is_file():
+            self._load_url_configs_file(self.url_configs_file)
+        else:
+            error_msg = f"URL configurations file not found at {self.url_configs_file}, please ensure the file exists and is accessible or provide a path to a different file."
+            raise FileNotFoundError(error_msg)
         self.html_string:str = ""
 
     @staticmethod
