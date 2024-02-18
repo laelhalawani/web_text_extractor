@@ -1,6 +1,6 @@
- # WebReader
+ # SelectiveWebReader
 
-WebReader is a Python utility designed to streamline the process of fetching, processing, and extracting content from web pages based on specific URL patterns and CSS selectors. It allows users to define which parts of a webpage to include or exclude, making it ideal for web scraping, data mining, and content extraction tasks.
+SelectiveWebReader is a Python utility designed to streamline the process of fetching, processing, and extracting content from web pages based on specific URL patterns and CSS selectors. It allows users to define which parts of a webpage to include or exclude, making it ideal for web scraping, data mining, and content extraction tasks.
 
 ## Features
 
