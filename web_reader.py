@@ -53,6 +53,47 @@ class WebReader:
         self._load_url_configs_file(self.url_configs_file)
         self.html_string:str = ""
 
+    @staticmethod
+    def _create_config(url_parent:str, include_selectors:list, remove_selectors:list) -> dict:
+        """
+        Creates a URL configuration dictionary for a given URL pattern.
+
+        Args:
+            url_parent (str): The URL pattern to match.
+            include_selectors (list): List of CSS selectors to include in the extraction.
+            remove_selectors (list): List of CSS selectors to remove from the extraction.
+
+        Returns:
+            dict: A URL configuration dictionary containing the URL pattern, include selectors, and remove selectors.
+        """
+        return {
+            "url_pattern" : [url_parent],
+            "include_selectors" : include_selectors,
+            "remove_selectors" : remove_selectors
+        }
+    
+    def add_config(self, url_parent:str, include_selectors:list, remove_selectors:list, update_file:bool=True) -> None:
+        """
+        Adds a URL configuration to the url_configs dictionary and optionally updates the URL configurations file.
+
+        Args:
+            url_parent (str): The URL pattern to match.
+            include_selectors (list): List of CSS selectors to include in the extraction.
+            remove_selectors (list): List of CSS selectors to remove from the extraction.
+            update_file (bool, optional): Whether to update the URL configurations file. Default is True.
+        """
+        config = self._create_config(url_parent, include_selectors, remove_selectors)
+        self._add_config(config)
+        if update_file:
+            self._update_url_configs_file()
+
+    def _update_url_configs_file(self) -> None:
+        """
+        Updates the URL configurations file with the current url_configs dictionary.
+        """
+        with open(self.url_configs_file, 'w') as f:
+            json.dump(self.url_configs, f, indent=4)
+
     def _add_config(self, url_config:dict):
         """
         Adds a URL configuration to the url_configs dictionary.
