@@ -70,7 +70,8 @@ class SelectiveWebReader:
         else:
             error_msg = f"URL configurations file not found at {self.url_configs_file}, please ensure the file exists and is accessible or provide a path to a different file."
             raise FileNotFoundError(error_msg)
-        self.html_string:str = ""
+        self.html_string:str = None
+        self.url:str = None
 
     @staticmethod
     def _create_config(url_parent:str, include_selectors:list, remove_selectors:list) -> dict:
@@ -207,6 +208,15 @@ class SelectiveWebReader:
         for link in soup.find_all('a', href=True):
             link['href'] = urljoin(url, link['href'])
         return str(soup)
+    
+    def _set_url(self, url:str) -> None:
+        """
+        Sets the URL attribute to the specified URL.
+
+        Args:
+            url (str): The URL to set.
+        """
+        self.url = url
 
     def load_website(self, url:str) -> str:
         """
@@ -218,6 +228,7 @@ class SelectiveWebReader:
         Returns:
             str: The processedHTML content based on URL configurations.
         """
+        self._set_url(url)
         html = self._load_html(url)
         html = self._make_links_absolute(html=html, url=url)
         selectors = self._get_selectors(url)
