@@ -72,7 +72,7 @@ class WebReader:
             "remove_selectors" : remove_selectors
         }
     
-    def add_config(self, url_parent:str, include_selectors:list, remove_selectors:list, update_file:bool=True) -> None:
+    def add_new_config(self, url_parent:str, include_selectors:list, remove_selectors:list, update_file:bool=True) -> None:
         """
         Adds a URL configuration to the url_configs dictionary and optionally updates the URL configurations file.
 
@@ -134,7 +134,9 @@ class WebReader:
         for url_pattern in self.url_configs.keys():
             if url_pattern in url:
                 return self.url_configs[url_pattern]
-        return None
+            elif "_default_" in self.url_configs.keys():
+                print(f"No match found for {url}, using default settings for now:\n{self.url_configs['_default_']}\nIt is recommended to add a configuration for this URL using add_new_config method.")
+                return self.url_configs["_default_"]
     
     def _load_html(self, url:str) -> str:
         """
