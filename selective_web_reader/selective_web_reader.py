@@ -283,3 +283,18 @@ class SelectiveWebReader:
         except URLError as e:
             print(f"URL Error encountered: {e.reason}")
         return ""
+
+    def save_html(self, save_as:str) -> None:
+        """
+        Saves the processed HTML content to a file.
+
+        Args:
+            save_as (str): The full path to save the HTML content.
+        """
+        if self.html_string:
+            with open(save_as, 'w') as f:
+                f.write(self.html_string)
+            print(f"HTML content saved to {save_as}")
+        else:
+            print("No HTML content to save, please load a website first.")
+            raise RuntimeError("No HTML content to save, please load a website first.")
