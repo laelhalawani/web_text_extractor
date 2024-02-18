@@ -4,10 +4,9 @@ from urllib.parse import urljoin, urlparse
 import bs4
 import json
 from pathlib import Path
+from .swr_config import DEFAULT_URL_CONFIG_FILE_PATH
+from .swr_config import UNCONFIGURED_URLS_OUTPUT_FILE
 
-
-PACKAGE_DIR = Path(__file__).resolve().parent
-DEFAULT_URL_CONFIG_FILE_PATH = (PACKAGE_DIR / "url_configs.json").resolve()
 
 """
 Configuration File Format for Content Extraction:
@@ -43,17 +42,19 @@ class SelectiveWebReader:
         download_image(image_url: str, save_as: str, save_dir: str, file_name: str, make_dir: bool): Downloads and saves an image from a given URL.
     """
 
-    def __init__(self, url_configs_file:str = None) -> None:
+    def __init__(self, url_configs_file:str = None, unconfigured_urls_notification_file:str=None) -> None:
         """
         Initializes WebReader with a URL configurations file.
 
         Args:
             url_configs_file (str, optional): Path to the URL configurations file. Defaults to DEFAULT_URL_CONFIG_FILE_PATH.
+            unconfigured_urls_notification_file (str, optional): Path to the file to write unconfigured URLs to. Defaults to UNCONFIGURED_URLS_OUTPUT_FILE.
         
         A class to load and process web content based on URL configurations.
 
         Attributes:
             url_configs_file (str): Path to the URL configurations file.
+            unconfigured_urls_output_file (str): Path to the file to write unconfigured URLs to.
             url_configs (dict): Loaded URL configurations mapping URL patterns to include and remove selectors.
             html_string (str): Processed HTML content as a string.
 
@@ -64,6 +65,7 @@ class SelectiveWebReader:
 
         """
         self.url_configs_file = DEFAULT_URL_CONFIG_FILE_PATH if url_configs_file is None else url_configs_file
+        self.unconfigured_urls_output_file = UNCONFIGURED_URLS_OUTPUT_FILE if unconfigured_urls_notification_file is None else unconfigured_urls_notification_file
         self.url_configs = {}
         if Path(self.url_configs_file).exists() and Path(self.url_configs_file).is_file():
             self._load_url_configs_file(self.url_configs_file)
@@ -156,6 +158,11 @@ class SelectiveWebReader:
                 return self.url_configs[url_pattern]
         if "_default_" in self.url_configs.keys():
             print(f"No match found for {url} in file {self.url_configs_file}, using default settings for now:\n{self.url_configs['_default_']}\nIt is recommended to add a configuration for this URL using add_new_config method.")
+            #add line to uncfigured_urls.txt if the line is not present
+            with open(UNCONFIGURED_URLS_OUTPUT_FILE, 'w+') as f:
+                if url not in f.read():
+                    f.write(url + "\n")
+                print(f"URL {url} added to {self.unconfigured_urls_output_file} for future reference.")
             return self.url_configs["_default_"]
     
     def _load_html(self, url:str) -> str:
