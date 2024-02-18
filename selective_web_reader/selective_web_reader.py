@@ -47,6 +47,19 @@ class SelectiveWebReader:
 
         Args:
             url_configs_file (str, optional): Path to the URL configurations file. Defaults to DEFAULT_URL_CONFIG_FILE_PATH.
+        
+        A class to load and process web content based on URL configurations.
+
+        Attributes:
+            url_configs_file (str): Path to the URL configurations file.
+            url_configs (dict): Loaded URL configurations mapping URL patterns to include and remove selectors.
+            html_string (str): Processed HTML content as a string.
+
+        Methods:
+            load_website(url: str): Loads and processes a website's HTML content based on URL configurations.
+            get_html(): Returns the processed HTML content.
+            download_image(image_url: str, save_as: str, save_dir: str, file_name: str, make_dir: bool): Downloads and saves an image from a given URL.
+
         """
         self.url_configs_file = DEFAULT_URL_CONFIG_FILE_PATH if url_configs_file is None else url_configs_file
         self.url_configs = {}
