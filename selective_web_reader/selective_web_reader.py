@@ -154,9 +154,9 @@ class SelectiveWebReader:
         for url_pattern in self.url_configs.keys():
             if url_pattern in url:
                 return self.url_configs[url_pattern]
-            elif "_default_" in self.url_configs.keys():
-                print(f"No match found for {url}, using default settings for now:\n{self.url_configs['_default_']}\nIt is recommended to add a configuration for this URL using add_new_config method.")
-                return self.url_configs["_default_"]
+        if "_default_" in self.url_configs.keys():
+            print(f"No match found for {url} in file {self.url_configs_file}, using default settings for now:\n{self.url_configs['_default_']}\nIt is recommended to add a configuration for this URL using add_new_config method.")
+            return self.url_configs["_default_"]
     
     def _load_html(self, url:str) -> str:
         """
@@ -306,7 +306,7 @@ class SelectiveWebReader:
         """
         if file_path is None:
             file_path = Path(urlparse(self.url).path).name + ".html"
-        with open(file_path, 'w') as f:
+        with open(file_path, 'w', encoding='utf-8') as f:
             f.write(self.html_string)
         print(f"HTML content saved to {file_path}")
         return file_path
