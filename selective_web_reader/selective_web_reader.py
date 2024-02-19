@@ -196,7 +196,9 @@ class SelectiveWebReader:
             with open(UNCONFIGURED_URLS_OUTPUT_FILE, 'w+') as f:
                 if url not in f.read():
                     f.write(url + "\n")
-                print(f"URL {url} added to {self.unconfigured_urls_output_file} for future reference.")
+                    print(f"URL {url} added to {self.unconfigured_urls_output_file} for future reference.")
+                else:
+                    print(f"URL {url} already present in {self.unconfigured_urls_output_file}, since you're seeing this message you've read this URL before. Please add a configuration for it using add_new_config method for better results.")
             return self.url_configs["_default_"]
     
     def _load_html(self, url:str) -> str:

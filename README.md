@@ -31,15 +31,25 @@ Create a new instance of the SelectiveWebReader class:
 swr = SelectiveWebReader()
 ```
 
-Optionally, add new configurations using the `add_new_config` method:
+Optionally, add new configurations using the `add_new_config` method, you can make it persistent by setting `update_file` argument to True, the default is False. The configurations are saved in a json file called `configurations.json` in the current directory.
 ```python
 swr.add_new_config(url_pattern='example.com/', include_selectors=['p', 'h1', '.content'], exclude_selectors=['.sidebar', 'script', 'button', '#footer'])
 ```
 
-Load a URL and extract content based on the configurations:
+Load a URL and extract content based on the configurations, if no configuration is found it will use the default and 
+create or update an `unconfigured_urls.txt` in your project directory for future reference.
 ```python
 swr.load_url('https://example.com')
-html = swr.get_html()
+```
+
+Optionally get the extracted content as a string:
+```python
+html_content = swr.get_html()
+```
+
+Optionally save the extracted content to a file:
+```python
+swr.save_html('output.html')
 ```
 
 ## How it works
