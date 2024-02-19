@@ -76,12 +76,12 @@ class SelectiveWebReader:
         self.url:str = None
 
     @staticmethod
-    def _create_config(url_parent:str, include_selectors:list, remove_selectors:list) -> dict:
+    def _create_config(url_pattern:str, include_selectors:list, remove_selectors:list) -> dict:
         """
         Creates a URL configuration dictionary for a given URL pattern.
 
         Args:
-            url_parent (str): The URL pattern to match.
+            url_pattern (str): The URL pattern to match.
             include_selectors (list): List of CSS selectors to include in the extraction.
             remove_selectors (list): List of CSS selectors to remove from the extraction.
 
@@ -89,38 +89,38 @@ class SelectiveWebReader:
             dict: A URL configuration dictionary containing the URL pattern, include selectors, and remove selectors.
         """
         return {
-            "url_pattern" : [url_parent],
+            "url_pattern" : [url_pattern],
             "include_selectors" : include_selectors,
             "remove_selectors" : remove_selectors
         }
     
 
-    def add_new_config(self, url_parent:str, include_selectors:list=["h1", "p"], remove_selectors:list=["button", "form", "style", "script", "iframe"], update_file:bool=True) -> None:
+    def add_new_config(self, url_pattern:str, include_selectors:list=["h1", "p"], remove_selectors:list=["button", "form", "style", "script", "iframe"], update_file:bool=True) -> None:
         """
         Adds a URL configuration to the url_configs dictionary and optionally updates the URL configurations file.
 
         Args:
-            url_parent (str): The URL pattern to match.
+            url_pattern (str): The URL pattern to match.
             include_selectors (list): List of CSS selectors to include in the extraction.
             remove_selectors (list): List of CSS selectors to remove from the extraction.
             update_file (bool, optional): Whether to update the URL configurations file. Default is True.
         """
-        config = self._create_config(url_parent, include_selectors, remove_selectors)
+        config = self._create_config(url_pattern, include_selectors, remove_selectors)
         self._add_new_config(config, update_entry=False)
         if update_file:
             self._update_url_configs_file()
     
-    def modify_or_add_config(self, url_parent:str, include_selectors:list=["h1", "p"], remove_selectors:list=["button", "form", "style", "script", "iframe"], update_file:bool=True) -> None:
+    def modify_or_add_config(self, url_pattern:str, include_selectors:list=["h1", "p"], remove_selectors:list=["button", "form", "style", "script", "iframe"], update_file:bool=True) -> None:
         """
         Adds a URL configuration to the url_configs dictionary and optionally updates the URL configurations file.
 
         Args:
-            url_parent (str): The URL pattern to match.
+            url_pattern (str): The URL pattern to match.
             include_selectors (list): List of CSS selectors to include in the extraction.
             remove_selectors (list): List of CSS selectors to remove from the extraction.
             update_file (bool, optional): Whether to update the URL configurations file. Default is True.
         """
-        config = self._create_config(url_parent, include_selectors, remove_selectors)
+        config = self._create_config(url_pattern, include_selectors, remove_selectors)
         self._add_new_config(config, update_entry=True)
         if update_file:
             self._update_url_configs_file()

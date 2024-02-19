@@ -19,6 +19,29 @@ clone the repo, navigate to the directory and run the following command:
 pip install .
 ```
 
+## Usage
+
+Import the SelectiveWebReader class from the package:
+```python
+from selective_web_reader import SelectiveWebReader
+```
+
+Create a new instance of the SelectiveWebReader class:
+```python
+swr = SelectiveWebReader()
+```
+
+Optionally, add new configurations using the `add_new_config` method:
+```python
+swr.add_new_config(url_pattern='example.com/', include_selectors=['p', 'h1', '.content'], exclude_selectors=['.sidebar', 'script', 'button', '#footer'])
+```
+
+Load a URL and extract content based on the configurations:
+```python
+swr.load_url('https://example.com')
+html = swr.get_html()
+```
+
 ## How it works
 
 The SelectiveWebReader class is the main interface for the utility. It allows users to define configurations for URL patterns and CSS selectors, and provides methods for fetching and processing web content.
