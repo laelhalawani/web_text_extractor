@@ -228,11 +228,13 @@ class SelectiveWebReader:
         include_selectors = selectors["include_selectors"]
         remove_selectors = selectors["remove_selectors"]
         soup = bs4.BeautifulSoup(html, 'html.parser')
-        for selector in remove_selectors:
-            for tag in soup.select(selector):
-                tag.extract()
         selected_elements = [str(tag) for selector in include_selectors for tag in soup.select(selector)]
-        return ''.join(selected_elements)
+        selected_html = ''.join(selected_elements)
+        for selector in remove_selectors:
+            selected_soup = bs4.BeautifulSoup(selected_html, 'html.parser')
+            for tag in selected_soup.select(selector):
+                tag.extract()
+        return selected_soup.prettify()
     
     def _make_links_absolute(self, html:str, url:str) -> str:
         """
