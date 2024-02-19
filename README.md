@@ -19,3 +19,8 @@ clone the repo, navigate to the directory and run the following command:
 pip install .
 ```
 
+## How it works
+
+The SelectiveWebReader class is the main interface for the utility. It allows users to define configurations for URL patterns and CSS selectors, and provides methods for fetching and processing web content.
+When a URL is passed the selectors are located and first the include selectors are extracted and then the exclude selectors are removed from the extracted content.
+You can get the output as a html string with `get_html()` method or save it to a file with `save_html()` method.
