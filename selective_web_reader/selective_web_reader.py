@@ -1,9 +1,12 @@
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlparse
+from http.client import IncompleteRead
 import bs4
 import json
+import time
 from pathlib import Path
+import logging as log
 from .swr_config import DEFAULT_URL_CONFIG_FILE_PATH
 from .swr_config import UNCONFIGURED_URLS_OUTPUT_FILE
 
@@ -201,20 +204,40 @@ class SelectiveWebReader:
                     print(f"URL {url} already present in {self.unconfigured_urls_output_file}, since you're seeing this message you've read this URL before. Please add a configuration for it using add_new_config method for better results.")
             return self.url_configs["_default_"]
     
-    def _load_html(self, url:str) -> str:
+
+    def _load_html(self, url: str, timeout: int = 10, max_retries: int = 3, wait_inbetween: int = 2) -> Optional[str]:
         """
-        Loads the HTML content from a given URL.
+        Attempts to load HTML content from a URL, with specified timeout and retries.
 
         Args:
-            url (str): The URL from which to load HTML content.
+            url (str): URL from which to load HTML content.
+            timeout (int): Maximum time in seconds to wait for a response from the server.
+            max_retries (int): Maximum number of retry attempts after the initial request fails.
+            wait_inbetween (int): Wait time in seconds between retry attempts.
 
         Returns:
-            str: The loaded HTML content.
+            Optional[str]: Loaded HTML content or None if all attempts fail.
         """
-        req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        html = urlopen(req).read().decode("utf8")
-        self.html_string = html
-        return html
+        attempt = 0
+        while attempt <= max_retries:
+            try:
+                req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urlopen(req, timeout=timeout) as response:
+                    html = response.read().decode('utf-8')
+                    return html
+            except IncompleteRead as e:
+                log.error(f"IncompleteRead error on attempt {attempt+1} for {url}: {str(e)}")
+            except (HTTPError, URLError) as e:
+                log.error(f"Network error on attempt {attempt+1} for {url}: {str(e)}")
+            except Exception as e:
+                log.error(f"Unhandled error on attempt {attempt+1} for {url}: {str(e)}")
+
+            time.sleep(wait_inbetween)
+            attempt += 1
+
+        log.error(f"Failed to load HTML after {max_retries} retries for {url}")
+        raise RuntimeError(f"Failed to load HTML after {max_retries} retries for {url}")
+        return None
     
     def _skim_relevant(self, html:str, selectors:dict) -> str:
         """
@@ -355,3 +378,25 @@ class SelectiveWebReader:
             f.write(self.html_string)
         print(f"HTML content saved to {file_path}")
         return file_path
+    
+    def download_website(self, url:str, save_dir:str = None, file_name:str = None, make_dir:bool = True, with_images:bool = False) -> str:
+        """
+        Downloads and saves a website's HTML content and optionally images.
+
+        Args:
+            url (str): The URL of the website to download.
+            save_dir (str, optional): The directory to save the HTML file. Default is the current directory.
+            file_name (str, optional): The name of the HTML file. Derived from the URL if not provided.
+            make_dir (bool, optional): Whether to create the save directory if it does not exist. Default is True.
+            with_images (bool, optional): Whether to download images from the website. Default is False.
+
+        Returns:
+            str: The path to the saved HTML file.
+        """
+        html = self.load_website(url)
+        if with_images:
+            soup = bs4.BeautifulSoup(html, 'html.parser')
+            image_urls = [img['src'] for img in soup.find_all('img', src=True)]
+            for image_url in image_urls:
+                self.download_image(image_url, save_dir=save_dir, make_dir=make_dir)
+        return self.save_html(file_path=file_name)
