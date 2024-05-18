@@ -497,6 +497,8 @@ class SelectiveWebReader:
             raise ValueError("No HTML content to save. Please load a website first.")
         if file_path is None:
             file_path = Path(urlparse(self.url).path).name + ".html"
+        if not Path(file_path).parent.exists():
+            Path(file_path).parent.mkdir(parents=True, exist_ok=True)
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(self.html_string)
         log.info(f"HTML content saved to {file_path}")
