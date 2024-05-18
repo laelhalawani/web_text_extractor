@@ -405,7 +405,7 @@ class SelectiveWebReader:
         """
         self._set_url(url)
         selectors = self._get_selectors(url, include_default=download_unconfigured)
-        log.warning(f"---> Selectors for {url}: {selectors}")
+        log.debug(f"Selectors for {url}: {selectors}")
         if selectors:
             try:
                 html = self._load_html(url, timeout=timeout, max_retries=max_retries, wait_inbetween=wait_inbetween)
