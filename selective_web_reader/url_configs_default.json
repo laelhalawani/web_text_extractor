@@ -1,8 +1,14 @@
 [
 {
     "url_pattern": ["_default_"], 
-    "include_selectors": ["h1", "p"],
-    "remove_selectors": ["button", "form", "style", "script", "iframe"]
+    "include_selectors": ["h1", "div", "p", "script"],
+    "remove_selectors": [
+        "button", 
+        "form", 
+        "style",  
+        "iframe",
+        "noscript"
+    ]
 
 },
 {
@@ -70,7 +76,10 @@
     ],
     "remove_selectors":[
         "div.pullbox",
-        "aside.ad_wrapper"
+        "aside.ad_wrapper",
+        "head",
+        "style"
+        
     ]
 }
 ]

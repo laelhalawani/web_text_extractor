@@ -102,36 +102,36 @@ class SelectiveWebReader:
             "remove_selectors" : remove_selectors
         }
     
-    def switch_to_local(self, config_file_path:str, overwrite:bool = False) -> None:
+    def switch_to_local(self, configs_dir:str, overwrite:bool = False) -> None:
         """
-        If the file doesn't exists, screates it and saves the current URL configurations to a specified file.
-        If the file exit it can overwrite it with the overwrite set to True.
-        Finally it the file as the new URL configurations file for the class.
+        Switches to use local configuration and output files instead of the package's global files, useful for separate configurations for different projects.
+        If the file doesn't exists, creates it and saves the current configurations, unconfigured URLs, and errored URLs to the new files.
+        If the files exit it can overwrite them with the overwrite set to True.
+        Finally it sets the new files to be used by the class.
 
         Args:
+            configs_dir (str): The directory to save the new configuration files.
             save_as (str): The path to save the URL configurations file.
             overwrite (bool, optional): Whether to overwrite the file if it already exists. Default is False.
         """
-        #check if it ends with .json and create path if needed
-        if not config_file_path.endswith(".json"):
-            config_file_path = config_file_path + ".json"
-        #create path if needed
-        config_file_path : Path = Path(config_file_path)
-        if not config_file_path.exists() or overwrite:
-            if not config_file_path.parent.exists():
-                config_file_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(config_file_path, 'w', encoding='utf-8') as f:
-                configs_list = []
-                for url_pattern, selectors in self.url_configs.items():
-                    config = {
-                        "url_pattern" : [url_pattern],
-                        "include_selectors" : selectors["include_selectors"],
-                        "remove_selectors" : selectors["remove_selectors"]
-                    }
-                    configs_list.append(config)
-                json.dump(configs_list, f, indent=4)
-        self.url_configs_file = config_file_path.as_posix()
-        self._load_url_configs_file(self.url_configs_file)
+        if not Path(configs_dir).exists():
+            Path(configs_dir).mkdir(parents=True, exist_ok=True)
+        new_url_configs_file = Path(configs_dir) / Path(self.url_configs_file).name
+        new_unconfigured_urls_output_file = Path(configs_dir) / Path(self.unconfigured_urls_output_file).name
+        new_errored_urls_output_file = Path(configs_dir) / Path(self.errored_urls_output_file).name
+        if not new_url_configs_file.exists() or overwrite:
+            with open(new_url_configs_file, 'w', encoding='utf-8') as f:
+                json.dump(self.url_configs, f, indent=4)
+        if not new_unconfigured_urls_output_file.exists() or overwrite:
+            with open(new_unconfigured_urls_output_file, 'w', encoding='utf-8') as f:
+                json.dump([], f, indent=4)
+        if not new_errored_urls_output_file.exists() or overwrite:
+            with open(new_errored_urls_output_file, 'w', encoding='utf-8') as f:
+                json.dump([], f, indent=4)
+        self.url_configs_file = new_url_configs_file.as_posix()
+        self.unconfigured_urls_output_file = new_unconfigured_urls_output_file.as_posix()
+        self.errored_urls_output_file = new_errored_urls_output_file.as_posix()
+        log.info(f"Switched to local configuration files: {self.url_configs_file}, {self.unconfigured_urls_output_file}, {self.errored_urls_output_file}")
     
 
     def add_new_config(self, url_pattern:str, include_selectors:list=["h1", "p"], remove_selectors:list=["button", "form", "style", "script", "iframe"], update_file:bool=True) -> None:
@@ -217,13 +217,13 @@ class SelectiveWebReader:
             self._add_config(config)
 
     
-    def _get_selectors(self, url:str, skip_default:bool = False) -> Optional[dict]:
+    def _get_selectors(self, url:str, include_default:bool = False) -> Optional[dict]:
         """
         Retrieves include and remove selectors for a given URL.
 
         Args:
             url (str): The URL to match against the url_configs patterns.
-            skip_default (bool, optional): Whether to skip the default settings if no match is found. Default is False. If set to True, the method will return None if no match is found.
+            include (bool, optional): Whether to skip the default settings if no match is found. Default is False. If set to True, the method will return None if no match is found.
 
         Returns:
             dict: A dictionary containing include and remove selectors if a match is found, None otherwise.
@@ -231,7 +231,7 @@ class SelectiveWebReader:
         for url_pattern in self.url_configs.keys():
             if url_pattern in url:
                 return self.url_configs[url_pattern]
-        if "_default_" in self.url_configs.keys() and not skip_default:
+        if "_default_" in self.url_configs.keys() and include_default:
             log.warn(f"No match found for {url} in file {self.url_configs_file}, using default settings for now:\n{self.url_configs['_default_']}\nIt is recommended to add a configuration for this URL using add_new_config method.")
             #add line to uncfigured_urls.txt if the line is not present
             urls = []
@@ -309,6 +309,7 @@ class SelectiveWebReader:
     def _skim_relevant(self, html:str, selectors:dict) -> str:
         """
         Extracts relevant content from HTML based on include and remove selectors.
+        First it selects the include selectors and creates a new html out of them then, it removes the remove selectors from the new html.
 
         Args:
             html (str): The HTML content to process.
@@ -321,7 +322,9 @@ class SelectiveWebReader:
         remove_selectors = selectors["remove_selectors"]
         soup = bs4.BeautifulSoup(html, 'html.parser')
         selected_elements = [str(tag) for selector in include_selectors for tag in soup.select(selector)]
+        log.debug(f"Selected elements: {selected_elements}")
         selected_html = ''.join(selected_elements)
+        log.debug(f"Selected HTML (before removing unwanted selectors): {selected_html}")
         for selector in remove_selectors:
             selected_soup = bs4.BeautifulSoup(selected_html, 'html.parser')
             for tag in selected_soup.select(selector):
@@ -370,14 +373,16 @@ class SelectiveWebReader:
             str: The processed HTML content as a string, or None if an error occurs.
         """
         self._set_url(url)
-        selectors = self._get_selectors(url)
-        if selectors or download_unconfigured:
+        selectors = self._get_selectors(url, include_default=download_unconfigured)
+        log.warning(f"---> Selectors for {url}: {selectors}")
+        if selectors:
             try:
                 html = self._load_html(url, timeout=timeout, max_retries=max_retries, wait_inbetween=wait_inbetween)
                 html = self._make_links_absolute(html=html, url=url)
-                if selectors:
-                    selected_elements = self._skim_relevant(html=html, selectors=selectors)
-                    html = "".join([str(element) for element in selected_elements])
+                log.debug(f"HTML loaded from {url}: \n{html}")
+                selected_elements = self._skim_relevant(html=html, selectors=selectors)
+                html = "".join([str(element) for element in selected_elements])
+                log.debug(f"Skimmed html from {url}: \n{html}...")
                 self.html_string = html
                 return html
             except Exception as e:
@@ -386,6 +391,7 @@ class SelectiveWebReader:
         else:
             log.error(f"No configuration found for {url} in {self.url_configs_file}. Please add a configuration for this URL using add_new_config method or set download_unconfigured to True to download the full HTML content.")
             return None
+        
     def get_html(self) -> str:
         """
         Retrieves the processed HTML content.
