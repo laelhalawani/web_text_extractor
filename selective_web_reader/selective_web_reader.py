@@ -262,10 +262,10 @@ class SelectiveWebReader:
         for url_pattern in self.url_configs.keys():
             if url_pattern in url:
                 return self.url_configs[url_pattern]
+        urls = []
         if "_default_" in self.url_configs.keys() and include_default:
             log.warn(f"No match found for {url} in file {self.url_configs_file}, using default settings for now:\n{self.url_configs['_default_']}\nIt is recommended to add a configuration for this URL using add_new_config method.")
             #add line to uncfigured_urls.txt if the line is not present
-            urls = []
             try:
                 with open(self.unconfigured_urls_output_file, 'r', encoding='utf-8') as f:
                     urls = json.load(f)
@@ -280,7 +280,16 @@ class SelectiveWebReader:
             else:
                 log.warn(f"URL {url} already present in {self.unconfigured_urls_output_file}, since you're seeing this message you've read this URL before. Please add a configuration for it using add_new_config method for better results.")
             return self.url_configs["_default_"]
-        return None
+        else:
+            if url not in [u['url'] for u in urls]:
+                urls.append({'url': url})
+                with open(self.unconfigured_urls_output_file, 'w', encoding='utf-8') as f:
+                    json.dump(urls, f, indent=4)
+                log.warn(f"URL {url} added to {self.unconfigured_urls_output_file} for future reference.")
+            else:
+                log.warn(f"URL {url} already present in {self.unconfigured_urls_output_file}, since you're seeing this message you've read this URL before. Please add a configuration for it using add_new_config method for better results.")
+            return None
+
     
 
 
