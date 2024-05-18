@@ -129,6 +129,7 @@ class SelectiveWebReader:
             with open(new_errored_urls_output_file, 'w', encoding='utf-8') as f:
                 json.dump([], f, indent=4)
         self.url_configs_file = new_url_configs_file.as_posix()
+        self._load_url_configs_file(self.url_configs_file)
         self.unconfigured_urls_output_file = new_unconfigured_urls_output_file.as_posix()
         self.errored_urls_output_file = new_errored_urls_output_file.as_posix()
         log.info(f"Switched to local configuration files: {self.url_configs_file}, {self.unconfigured_urls_output_file}, {self.errored_urls_output_file}")
