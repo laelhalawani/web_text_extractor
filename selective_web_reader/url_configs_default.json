@@ -40,7 +40,7 @@
     ]
 },
 {
-    "url_pattern":["https://www.marktechpost.com/", "https://marktechpost.com/"],
+    "url_pattern":["marktechpost.com/", "marktechpost.com/"],
     "include_selectors":[
                         "h1.entry-title",
                         "div.td-post-content"
@@ -53,7 +53,7 @@
                         ]
 },
 {
-    "url_pattern":["https://blog.replit.com/"],
+    "url_pattern":["blog.replit.com/"],
     "include_selectors":[
         ".post-content",
         "h1.post-title"
@@ -64,7 +64,7 @@
     ]
 },
 {
-    "url_pattern":["https://arstechnica.com/"],
+    "url_pattern":["arstechnica.com/"],
     "include_selectors":[
         "div.article-content"
     ],

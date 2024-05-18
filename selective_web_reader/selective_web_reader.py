@@ -1,3 +1,4 @@
+from typing import Optional
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlparse
@@ -9,6 +10,7 @@ from pathlib import Path
 import logging as log
 from .swr_config import DEFAULT_URL_CONFIG_FILE_PATH
 from .swr_config import UNCONFIGURED_URLS_OUTPUT_FILE
+from .swr_config import ERRORED_URLS_OUTPUT_FILE
 
 
 """
@@ -45,7 +47,7 @@ class SelectiveWebReader:
         download_image(image_url: str, save_as: str, save_dir: str, file_name: str, make_dir: bool): Downloads and saves an image from a given URL.
     """
 
-    def __init__(self, url_configs_file:str = None, unconfigured_urls_notification_file:str=None) -> None:
+    def __init__(self, url_configs_file:str = None, unconfigured_urls_notification_file:str=None, errored_urls_notification_file:str=None) -> None:
         """
         Initializes WebReader with a URL configurations file.
 
@@ -66,9 +68,12 @@ class SelectiveWebReader:
             get_html(): Returns the processed HTML content.
             download_image(image_url: str, save_as: str, save_dir: str, file_name: str, make_dir: bool): Downloads and saves an image from a given URL.
 
+
+
         """
         self.url_configs_file = DEFAULT_URL_CONFIG_FILE_PATH if url_configs_file is None else url_configs_file
         self.unconfigured_urls_output_file = UNCONFIGURED_URLS_OUTPUT_FILE if unconfigured_urls_notification_file is None else unconfigured_urls_notification_file
+        self.errored_urls_output_file = ERRORED_URLS_OUTPUT_FILE if errored_urls_notification_file is None else errored_urls_notification_file
         self.url_configs = {}
         if Path(self.url_configs_file).exists() and Path(self.url_configs_file).is_file():
             self._load_url_configs_file(self.url_configs_file)
@@ -96,6 +101,37 @@ class SelectiveWebReader:
             "include_selectors" : include_selectors,
             "remove_selectors" : remove_selectors
         }
+    
+    def switch_to_local(self, config_file_path:str, overwrite:bool = False) -> None:
+        """
+        If the file doesn't exists, screates it and saves the current URL configurations to a specified file.
+        If the file exit it can overwrite it with the overwrite set to True.
+        Finally it the file as the new URL configurations file for the class.
+
+        Args:
+            save_as (str): The path to save the URL configurations file.
+            overwrite (bool, optional): Whether to overwrite the file if it already exists. Default is False.
+        """
+        #check if it ends with .json and create path if needed
+        if not config_file_path.endswith(".json"):
+            config_file_path = config_file_path + ".json"
+        #create path if needed
+        config_file_path : Path = Path(config_file_path)
+        if not config_file_path.exists() or overwrite:
+            if not config_file_path.parent.exists():
+                config_file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(config_file_path, 'w', encoding='utf-8') as f:
+                configs_list = []
+                for url_pattern, selectors in self.url_configs.items():
+                    config = {
+                        "url_pattern" : [url_pattern],
+                        "include_selectors" : selectors["include_selectors"],
+                        "remove_selectors" : selectors["remove_selectors"]
+                    }
+                    configs_list.append(config)
+                json.dump(configs_list, f, indent=4)
+        self.url_configs_file = config_file_path.as_posix()
+        self._load_url_configs_file(self.url_configs_file)
     
 
     def add_new_config(self, url_pattern:str, include_selectors:list=["h1", "p"], remove_selectors:list=["button", "form", "style", "script", "iframe"], update_file:bool=True) -> None:
@@ -132,7 +168,7 @@ class SelectiveWebReader:
         """
         Updates the URL configurations file with the current url_configs dictionary.
         """
-        with open(self.url_configs_file, 'w') as f:
+        with open(self.url_configs_file, 'w', encoding='utf-8') as f:
             json.dump(self.url_configs, f, indent=4)
 
     def _add_config(self, url_config:dict):
@@ -175,17 +211,19 @@ class SelectiveWebReader:
         Args:
             url_configs_file (str): Path to the URL configurations file.
         """
-        with open(url_configs_file, 'r') as f:
+        with open(url_configs_file, 'r', encoding='utf-8') as f:
             configs = json.load(f)
         for config in configs:
             self._add_config(config)
+
     
-    def _get_selectors(self, url:str):
+    def _get_selectors(self, url:str, skip_default:bool = False) -> Optional[dict]:
         """
         Retrieves include and remove selectors for a given URL.
 
         Args:
             url (str): The URL to match against the url_configs patterns.
+            skip_default (bool, optional): Whether to skip the default settings if no match is found. Default is False. If set to True, the method will return None if no match is found.
 
         Returns:
             dict: A dictionary containing include and remove selectors if a match is found, None otherwise.
@@ -193,21 +231,31 @@ class SelectiveWebReader:
         for url_pattern in self.url_configs.keys():
             if url_pattern in url:
                 return self.url_configs[url_pattern]
-        if "_default_" in self.url_configs.keys():
-            print(f"No match found for {url} in file {self.url_configs_file}, using default settings for now:\n{self.url_configs['_default_']}\nIt is recommended to add a configuration for this URL using add_new_config method.")
+        if "_default_" in self.url_configs.keys() and not skip_default:
+            log.warn(f"No match found for {url} in file {self.url_configs_file}, using default settings for now:\n{self.url_configs['_default_']}\nIt is recommended to add a configuration for this URL using add_new_config method.")
             #add line to uncfigured_urls.txt if the line is not present
-            with open(UNCONFIGURED_URLS_OUTPUT_FILE, 'w+') as f:
-                if url not in f.read():
-                    f.write(f.read() + url + "\n")
-                    print(f"URL {url} added to {self.unconfigured_urls_output_file} for future reference.")
-                else:
-                    print(f"URL {url} already present in {self.unconfigured_urls_output_file}, since you're seeing this message you've read this URL before. Please add a configuration for it using add_new_config method for better results.")
+            urls = []
+            try:
+                with open(self.unconfigured_urls_output_file, 'r', encoding='utf-8') as f:
+                    urls = json.load(f)
+            except FileNotFoundError:
+                pass
+
+            if url not in [u['url'] for u in urls]:
+                urls.append({'url': url})
+                with open(self.unconfigured_urls_output_file, 'w', encoding='utf-8') as f:
+                    json.dump(urls, f, indent=4)
+                log.warn(f"URL {url} added to {self.unconfigured_urls_output_file} for future reference.")
+            else:
+                log.warn(f"URL {url} already present in {self.unconfigured_urls_output_file}, since you're seeing this message you've read this URL before. Please add a configuration for it using add_new_config method for better results.")
             return self.url_configs["_default_"]
+        return None
     
 
-    def _load_html(self, url: str, timeout: int = 10, max_retries: int = 3, wait_inbetween: int = 2) -> Optional[str]:
+
+    def _load_html(self, url: str, timeout: float = 10, max_retries: int = 3, wait_inbetween: int = float) -> Optional[str]:
         """
-        Attempts to load HTML content from a URL, with specified timeout and retries.
+        Attempts to load HTML content from a URL, with specified timeout and retries. In case of errors, it logs the error and adds the URL to the errored_urls.json file.
 
         Args:
             url (str): URL from which to load HTML content.
@@ -216,9 +264,10 @@ class SelectiveWebReader:
             wait_inbetween (int): Wait time in seconds between retry attempts.
 
         Returns:
-            Optional[str]: Loaded HTML content or None if all attempts fail.
+            str: The loaded HTML content as a string, or None if an error occurs.
         """
         attempt = 0
+        errors = []
         while attempt <= max_retries:
             try:
                 req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -227,17 +276,35 @@ class SelectiveWebReader:
                     return html
             except IncompleteRead as e:
                 log.error(f"IncompleteRead error on attempt {attempt+1} for {url}: {str(e)}")
+                errors.append(str(e))
             except (HTTPError, URLError) as e:
                 log.error(f"Network error on attempt {attempt+1} for {url}: {str(e)}")
+                errors.append(str(e))
             except Exception as e:
                 log.error(f"Unhandled error on attempt {attempt+1} for {url}: {str(e)}")
+                errors.append(str(e))
 
             time.sleep(wait_inbetween)
             attempt += 1
-
         log.error(f"Failed to load HTML after {max_retries} retries for {url}")
-        raise RuntimeError(f"Failed to load HTML after {max_retries} retries for {url}")
+        #add line to errored_urls.json if the line is not present
+        errored_urls = []
+        try:
+            with open(self.errored_urls_output_file, 'r', encoding='utf-8') as f:
+                errored_urls = json.load(f)
+        except FileNotFoundError:
+            pass
+
+        if url not in [u['url'] for u in errored_urls]:
+            errored_urls.append({'url': url, 'errors': errors})
+            with open(self.errored_urls_output_file, 'w', encoding='utf-8') as f:
+                json.dump(errored_urls, f, indent=4)
+            log.warn(f"URL {url} errored added to {self.errored_urls_output_file} for future reference.")
+        else:
+            log.warn(f"URL {url} already present in {self.errored_urls_output_file}, since you're seeing this message you've read this URL before. Please add a configuration for it using add_new_config method for better results.")
         return None
+
+      
     
     def _skim_relevant(self, html:str, selectors:dict) -> str:
         """
@@ -286,26 +353,39 @@ class SelectiveWebReader:
         """
         self.url = url
 
-    def load_website(self, url:str) -> str:
+    def load_website(self, url:str, timeout:float=20, max_retries:int=5, wait_inbetween:float=2, download_unconfigured:bool=False) -> Optional[str]:
         """
         Loads, processes, and stores the HTML content from a specified URL.
 
         Args:
             url (str): The URL of the website to load.
+            timeout (float, optional): Maximum time in seconds to wait for a response from the server. Default is 20.
+            max_retries (int, optional): Maximum number of retry attempts after the initial request fails. Default is 5.
+            wait_inbetween (float, optional): Wait time in seconds between retry attempts. Default is 2.
+            download_unconfigured (bool, optional): Whether to download the HTML content for unconfigured URLs. Default is False. 
+                If set to True, the method will first look for __default__ configuration in the URL configurations file and if not found, 
+                it will download the full HTML content without any processing.
 
         Returns:
-            str: The processedHTML content based on URL configurations.
+            str: The processed HTML content as a string, or None if an error occurs.
         """
         self._set_url(url)
-        html = self._load_html(url)
-        html = self._make_links_absolute(html=html, url=url)
         selectors = self._get_selectors(url)
-        if selectors:
-            selected_elements = self._skim_relevant(html=html, selectors=selectors)
-            html = "".join([str(element) for element in selected_elements])
-        self.html_string = html
-        return html
-
+        if selectors or download_unconfigured:
+            try:
+                html = self._load_html(url, timeout=timeout, max_retries=max_retries, wait_inbetween=wait_inbetween)
+                html = self._make_links_absolute(html=html, url=url)
+                if selectors:
+                    selected_elements = self._skim_relevant(html=html, selectors=selectors)
+                    html = "".join([str(element) for element in selected_elements])
+                self.html_string = html
+                return html
+            except Exception as e:
+                log.error(f"Error encountered while processing {url}: {str(e)}")
+                return None
+        else:
+            log.error(f"No configuration found for {url} in {self.url_configs_file}. Please add a configuration for this URL using add_new_config method or set download_unconfigured to True to download the full HTML content.")
+            return None
     def get_html(self) -> str:
         """
         Retrieves the processed HTML content.
@@ -353,16 +433,16 @@ class SelectiveWebReader:
             with urlopen(req) as response:
                 if response.status == 200:
                     image_data = response.read()
-                    with open(save_path, 'wb') as f:
+                    with open(save_path, 'wb', encoding='utf-8') as f:
                         f.write(image_data)
-                    print(f"{url} saved to {save_path}")
+                    log.info(f"{url} saved to {save_path}")
                     return str(save_path)
                 else:
                     raise RuntimeError(f"Image failed to download, returned code {response.status}")
         except HTTPError as e:
-            print(f"HTTP Error encountered: {e.code} - {e.reason}")
+            log.error(f"HTTP Error encountered: {e.code} - {e.reason}")
         except URLError as e:
-            print(f"URL Error encountered: {e.reason}")
+            log.error(f"URL Error encountered: {e.reason}")
         return ""
 
     def save_html(self, file_path:str = None) -> None:
@@ -372,11 +452,14 @@ class SelectiveWebReader:
         Args:
             file_path (str, optional): The path to save the HTML content. If not provided derived from the URL.
         """
+        if self.html_string is None:
+            log.error("No HTML content to save. Please load a website first.")
+            return
         if file_path is None:
             file_path = Path(urlparse(self.url).path).name + ".html"
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(self.html_string)
-        print(f"HTML content saved to {file_path}")
+        log.info(f"HTML content saved to {file_path}")
         return file_path
     
     def download_website(self, url:str, save_dir:str = None, file_name:str = None, make_dir:bool = True, with_images:bool = False) -> str:
@@ -398,5 +481,6 @@ class SelectiveWebReader:
             soup = bs4.BeautifulSoup(html, 'html.parser')
             image_urls = [img['src'] for img in soup.find_all('img', src=True)]
             for image_url in image_urls:
-                self.download_image(image_url, save_dir=save_dir, make_dir=make_dir)
+                new_image_path = self.download_image(image_url, save_dir=save_dir, make_dir=make_dir)
+                html = html.replace(image_url, new_image_path)
         return self.save_html(file_path=file_name)
