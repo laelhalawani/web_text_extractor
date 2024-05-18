@@ -120,15 +120,37 @@ class SelectiveWebReader:
         new_unconfigured_urls_output_file = Path(configs_dir) / Path(self.unconfigured_urls_output_file).name
         new_errored_urls_output_file = Path(configs_dir) / Path(self.errored_urls_output_file).name
         if not new_url_configs_file.exists() or overwrite:
-            with open(new_url_configs_file, 'w', encoding='utf-8') as f:
-                json.dump(self.url_configs, f, indent=4)
+            if Path(self.url_configs_file).exists():
+                url_configs = []
+                with open(self.url_configs_file, 'r', encoding='utf-8') as f:
+                    url_configs = json.load(f)
+                with open(new_url_configs_file, 'w', encoding='utf-8') as f:
+                    json.dump(url_configs, f, indent=4)
+            else:
+                with open(new_url_configs_file, 'w', encoding='utf-8') as f:
+                    json.dump([], f, indent=4)
         if not new_unconfigured_urls_output_file.exists() or overwrite:
-            with open(new_unconfigured_urls_output_file, 'w', encoding='utf-8') as f:
-                json.dump([], f, indent=4)
+            if Path(self.unconfigured_urls_output_file).exists():
+                unconfigured_urls = []
+                with open(self.unconfigured_urls_output_file, 'r', encoding='utf-8') as f:
+                    unconfigured_urls = json.load(f)
+                with open(new_unconfigured_urls_output_file, 'w', encoding='utf-8') as f:
+                    json.dump(unconfigured_urls, f, indent=4)
+            else:
+                with open(new_unconfigured_urls_output_file, 'w', encoding='utf-8') as f:
+                    json.dump([], f, indent=4)
         if not new_errored_urls_output_file.exists() or overwrite:
-            with open(new_errored_urls_output_file, 'w', encoding='utf-8') as f:
-                json.dump([], f, indent=4)
+            if Path(self.errored_urls_output_file).exists():
+                errored_urls = []
+                with open(self.errored_urls_output_file, 'r', encoding='utf-8') as f:
+                    errored_urls = json.load(f)
+                with open(new_errored_urls_output_file, 'w', encoding='utf-8') as f:
+                    json.dump(errored_urls, f, indent=4)
+            else:
+                with open(new_errored_urls_output_file, 'w', encoding='utf-8') as f:
+                    json.dump([], f, indent=4)
         self.url_configs_file = new_url_configs_file.as_posix()
+        self.url_configs = {}
         self._load_url_configs_file(self.url_configs_file)
         self.unconfigured_urls_output_file = new_unconfigured_urls_output_file.as_posix()
         self.errored_urls_output_file = new_errored_urls_output_file.as_posix()
@@ -172,7 +194,7 @@ class SelectiveWebReader:
         with open(self.url_configs_file, 'w', encoding='utf-8') as f:
             json.dump(self.url_configs, f, indent=4)
 
-    def _add_config(self, url_config:dict):
+    def _add_config(self, url_config:dict) -> None:
         """
         Adds a URL configuration to the url_configs dictionary.
 
@@ -204,18 +226,26 @@ class SelectiveWebReader:
                 "include_selectors" : url_config["include_selectors"],
                 "remove_selectors" : url_config["remove_selectors"]
             }
-    
-    def _load_url_configs_file(self, url_configs_file:str):
+        
+    def _load_url_configs_file(self, url_configs_file: str):
         """
         Loads URL configurations from a file and populates the url_configs attribute.
 
         Args:
             url_configs_file (str): Path to the URL configurations file.
         """
+        log.debug(f"Loading URL configurations from: {url_configs_file}")
+        if not Path(url_configs_file).exists():
+            log.error(f"Configuration file {url_configs_file} does not exist.")
+            return
+
         with open(url_configs_file, 'r', encoding='utf-8') as f:
             configs = json.load(f)
+            log.debug(f"Loaded configurations: {configs}")
+
         for config in configs:
             self._add_config(config)
+        log.debug(f"Final URL configurations: {self.url_configs}")
 
     
     def _get_selectors(self, url:str, include_default:bool = False) -> Optional[dict]:
