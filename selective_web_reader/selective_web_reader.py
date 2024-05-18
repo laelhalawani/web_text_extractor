@@ -418,10 +418,10 @@ class SelectiveWebReader:
                 return html
             except Exception as e:
                 log.error(f"Error encountered while processing {url}: {str(e)}")
-                return None
+                raise e
         else:
             log.error(f"No configuration found for {url} in {self.url_configs_file}. Please add a configuration for this URL using add_new_config method or set download_unconfigured to True to download the full HTML content.")
-            return None
+            raise ValueError(f"No configuration found for {url} in {self.url_configs_file}. Please add a configuration for this URL using add_new_config method or set download_unconfigured to True to download the full HTML content.")
         
     def get_html(self) -> str:
         """
@@ -491,7 +491,7 @@ class SelectiveWebReader:
         """
         if self.html_string is None:
             log.error("No HTML content to save. Please load a website first.")
-            return
+            raise ValueError("No HTML content to save. Please load a website first.")
         if file_path is None:
             file_path = Path(urlparse(self.url).path).name + ".html"
         with open(file_path, 'w', encoding='utf-8') as f:
