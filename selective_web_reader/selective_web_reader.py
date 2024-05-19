@@ -340,10 +340,11 @@ class SelectiveWebReader:
 
       
     
-    def _skim_relevant(self, html:str, selectors:dict) -> str:
+    def _skim_relevant(self, html: str, selectors: dict) -> str:
         """
         Extracts relevant content from HTML based on include and remove selectors.
-        First it selects the include selectors and creates a new html out of them then, it removes the remove selectors from the new html.
+        First, it selects the include selectors and creates new HTML out of them,
+        then it removes the remove selectors from the new HTML.
 
         Args:
             html (str): The HTML content to process.
@@ -354,16 +355,31 @@ class SelectiveWebReader:
         """
         include_selectors = selectors["include_selectors"]
         remove_selectors = selectors["remove_selectors"]
+
         soup = bs4.BeautifulSoup(html, 'html.parser')
-        selected_elements = [str(tag) for selector in include_selectors for tag in soup.select(selector)]
-        log.debug(f"Selected elements: {selected_elements}")
-        selected_html = ''.join(selected_elements)
-        log.debug(f"Selected HTML (before removing unwanted selectors): {selected_html}")
+
+        # Collect elements that match include selectors while preserving order
+        selected_elements = []
+        included_set = set()
+
+        for selector in include_selectors:
+            for element in soup.select(selector):
+                if element not in included_set:
+                    selected_elements.append(element)
+                    included_set.add(element)
+
+        # Create a new soup with selected elements only
+        new_soup = bs4.BeautifulSoup('', 'html.parser')
+        for element in selected_elements:
+            new_soup.append(element)
+
+        # Remove unwanted elements from the new soup
         for selector in remove_selectors:
-            selected_soup = bs4.BeautifulSoup(selected_html, 'html.parser')
-            for tag in selected_soup.select(selector):
-                tag.extract()
-        return selected_soup.prettify()
+            for tag in new_soup.select(selector):
+                tag.decompose()
+
+        return new_soup.prettify()
+
     
     def _make_links_absolute(self, html:str, url:str) -> str:
         """

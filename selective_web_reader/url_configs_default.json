@@ -1,13 +1,21 @@
 [
 {
     "url_pattern": ["_default_"], 
-    "include_selectors": ["h1", "div", "p", "script"],
+    "include_selectors": ["h1", "h2", "p"],
     "remove_selectors": [
         "button", 
         "form", 
         "style",  
         "iframe",
-        "noscript"
+        "noscript",
+        "path",
+        "svg",
+        "svg *",
+        "path *",
+        "nav",
+        "nav *",
+        "footer",
+        "div"
     ]
 
 },
