@@ -1,1 +1,11 @@
-Skip default / download unconfigured handling
+Always check all the matches in configs and select one that has the best match 
+w.c/1/2 
+w.c/
+w.c/1
+
+link
+w.c/a -> w.c/
+w.c/1/a -> w.c/1
+w.c/1/2/a -> w.c/1/2
+w.c/1/2/3/a -> w.c/1/2
+w.c/anything -> w.c/
